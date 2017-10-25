@@ -7,12 +7,11 @@
    div.tooltip {
      position: absolute;
      text-align: center;
-     width: 60px;
-     height: 28px;
-     padding: 2px;
-     font: 12px sans-serif;
-     background: lightsteelblue;
-     border: 0px;
+     padding: 4px;
+     font: 14px sans-serif;
+     color: white;
+     background: black;
+     border: 1px solid black;
      border-radius: 8px;
      pointer-events: none;
    }
@@ -37,7 +36,7 @@
    var populationScale = d3.scaleSqrt().domain([0, 1e9]).range([1, 50]);
 
    var incomeAxis = d3.axisBottom(incomeScale).ticks(5, d3.format(",d"));
-   var lifeAxis = d3.axisLeft(lifeScale);
+   var lifeAxis = d3.axisLeft(lifeScale).ticks(5);
 
    // transform on non-nested svg does not work in Chrome
    var svg = d3.select("body").append("svg")
@@ -50,7 +49,7 @@
       .attr("fill", "none")
       .attr("stroke", "black")
       .attr("shape-rendering", "crispEdges")
-      .attr("transform", "translate(0," + height + ")")
+      .attr("transform", "translate(" + offset + "," + height + ")")
       .call(incomeAxis);
 
    svg.append("g")
@@ -58,6 +57,7 @@
       .attr("fill", "none")
       .attr("stroke", "black")
       .attr("shape-rendering", "crispEdges")
+      .attr("transform", "translate(" + offset + ", 0)")
       .call(lifeAxis);
 
    svg.selectAll("g").selectAll("text")
@@ -74,9 +74,9 @@
    svg.append("text")
       .attr("class", "lifeLabel")
       .attr("text-anchor", "end")
-      .attr("y", 15)
+      .attr("y", 15 + offset)
       .attr("transform", "rotate(-90)")
-      .attr("Life expectancy (years)");
+      .text("Life expectancy (years)");
 
    var yearLabel = svg.append("text")
                       .attr("class", "yearLabel")
@@ -98,19 +98,23 @@
        p.attr("r", function(d) {
          return populationScale(d.population);
        });
-       if (currentRegion == "") {
-         p.attr("fill", function(d) {
-           return color(d.region);
-         });
-       } else {
-         p.attr("fill", function(d) {
-           if (d.region == currentRegion) {
-             return color(d.region);
-           } else {
-             return "white";
-           }
-         });
-       }
+       p.attr("fill", function(d) {
+         return color(d.region);
+       });
+       p.attr("fill-opacity", function(d) {
+         if (currentRegion == d.region || currentRegion == "") {
+           return 1;
+         } else {
+           return .2;
+         }
+       });
+       p.attr("stroke-opacity", function(d) {
+         if (currentRegion == d.region || currentRegion == "") {
+           return 1;
+         } else {
+           return .2;
+         }
+       });
      }
 
      function order(a, b) {
@@ -142,8 +146,8 @@
                      .on("mouseover", function(d) {
                        div.transition()
                           .duration(200)
-                          .style("opacity", .9);
-                       div.html(d.name + "<br />"  + d.region)
+                          .style("opacity", 1);
+                       div.html(d.name)
                           .style("left", (d3.event.pageX) + "px")
                           .style("top", (d3.event.pageY - 28) + "px");
                      })
