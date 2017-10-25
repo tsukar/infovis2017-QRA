@@ -24,6 +24,7 @@ var populationScale = d3.scaleSqrt().domain([0, 1e9]).range([1, 50]);
 var incomeAxis = d3.axisBottom(incomeScale).ticks(5, d3.format(",d"));
 var lifeAxis = d3.axisLeft(lifeScale);
 
+// transform on non-nested svg does not work in Chrome
 var svg = d3.select("body").append("svg")
             .attr("width", width + 2 * offset)
             .attr("height", height + 2 * offset)
