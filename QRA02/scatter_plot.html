@@ -1,170 +1,219 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-         <meta charset="utf-8">
-         <title>D3 Test</title>
-         <script type="text/javascript" src="./lib/d3.js"></script>
-      </head>
-      <body>
-<script type="text/javascript">
-//
-// based on Hans Rosling's presentation and Mike Bostock's D3 example
-// http://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen
-// http://bost.ocks.org/mike/nations/
-//
-var width = 1000;
-var height = 600;
-var offset = 40;
-var currentYear = 1800;
-var color = d3.scaleOrdinal(d3.schemeCategory10);
+  <meta charset="utf-8">
+  <title>D3 Test</title>
+  <script type="text/javascript" src="./lib/d3.js"></script>
+  <style>
+   div.tooltip {
+     position: absolute;
+     text-align: center;
+     width: 60px;
+     height: 28px;
+     padding: 2px;
+     font: 12px sans-serif;
+     background: lightsteelblue;
+     border: 0px;
+     border-radius: 8px;
+     pointer-events: none;
+   }
+  </style>
+</head>
+<body>
+  <script type="text/javascript">
+   //
+   // based on Hans Rosling's presentation and Mike Bostock's D3 example
+   // http://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen
+   // http://bost.ocks.org/mike/nations/
+   //
+   var width = 1000;
+   var height = 600;
+   var offset = 40;
+   var currentYear = 1800;
+   var currentRegion = "";
+   var color = d3.scaleOrdinal(d3.schemeCategory10);
 
-var incomeScale = d3.scaleLog().domain([100, 100000]).range([0, width]);
-var lifeScale = d3.scaleLinear().domain([10, 90]).range([height, 0]);
-var populationScale = d3.scaleSqrt().domain([0, 1e9]).range([1, 50]);
+   var incomeScale = d3.scaleLog().domain([100, 100000]).range([0, width]);
+   var lifeScale = d3.scaleLinear().domain([10, 90]).range([height, 0]);
+   var populationScale = d3.scaleSqrt().domain([0, 1e9]).range([1, 50]);
 
-var incomeAxis = d3.axisBottom(incomeScale).ticks(5, d3.format(",d"));
-var lifeAxis = d3.axisLeft(lifeScale);
+   var incomeAxis = d3.axisBottom(incomeScale).ticks(5, d3.format(",d"));
+   var lifeAxis = d3.axisLeft(lifeScale);
 
-// transform on non-nested svg does not work in Chrome
-var svg = d3.select("body").append("svg")
-            .attr("width", width + 2 * offset)
-            .attr("height", height + 2 * offset)
-            .attr("transform", "translate(" + offset + "," + offset + ")");
+   // transform on non-nested svg does not work in Chrome
+   var svg = d3.select("body").append("svg")
+               .attr("width", width + 2 * offset)
+               .attr("height", height + 2 * offset)
+               .attr("transform", "translate(" + offset + "," + offset + ")");
 
-svg.append("g")
-   .attr("class", "incomeAxis")
-   .attr("fill", "none")
-   .attr("stroke", "black")
-   .attr("shape-rendering", "crispEdges")
-   .attr("transform", "translate(0," + height + ")")
-   .call(incomeAxis);
+   svg.append("g")
+      .attr("class", "incomeAxis")
+      .attr("fill", "none")
+      .attr("stroke", "black")
+      .attr("shape-rendering", "crispEdges")
+      .attr("transform", "translate(0," + height + ")")
+      .call(incomeAxis);
 
- svg.append("g")
-    .attr("class", "lifeAxis")
-    .attr("fill", "none")
-    .attr("stroke", "black")
-    .attr("shape-rendering", "crispEdges")
-    .call(lifeAxis);
+   svg.append("g")
+      .attr("class", "lifeAxis")
+      .attr("fill", "none")
+      .attr("stroke", "black")
+      .attr("shape-rendering", "crispEdges")
+      .call(lifeAxis);
 
-svg.selectAll("g").selectAll("text")
-   .attr("fill", "black")
-   .attr("stroke", "none");
+   svg.selectAll("g").selectAll("text")
+      .attr("fill", "black")
+      .attr("stroke", "none");
 
-svg.append("text")
-   .attr("class", "incomeLabel")
-   .attr("text-anchor", "end")
-   .attr("x", width)
-   .attr("y", height -10)
-   .text("Income per capita (USD)")
+   svg.append("text")
+      .attr("class", "incomeLabel")
+      .attr("text-anchor", "end")
+      .attr("x", width)
+      .attr("y", height -10)
+      .text("Income per capita (USD)")
 
-svg.append("text")
-   .attr("class", "lifeLabel")
-   .attr("text-anchor", "end")
-   .attr("y", 15)
-   .attr("transform", "rotate(-90)")
-   .attr("Life expectancy (years)");
+   svg.append("text")
+      .attr("class", "lifeLabel")
+      .attr("text-anchor", "end")
+      .attr("y", 15)
+      .attr("transform", "rotate(-90)")
+      .attr("Life expectancy (years)");
 
-var yearLabel = svg.append("text")
-  .attr("class", "yearLabel")
-  .attr("text-anchor", "end")
-  .attr("font-size", 50)
-  .attr("x", width)
-  .attr("y", height - 35)
-  .text(currentYear);
+   var yearLabel = svg.append("text")
+                      .attr("class", "yearLabel")
+                      .attr("text-anchor", "end")
+                      .attr("font-size", 50)
+                      .attr("x", width)
+                      .attr("y", height - 35)
+                      .text(currentYear);
 
-d3.json("nations.json", function(nations) {
+   d3.json("nations.json", function(nations) {
 
-  function position(p) {
-    p.attr("cx", function(d) {
-      return incomeScale(d.income);
-    });
-    p.attr("cy", function(d) {
-      return lifeScale(d.lifeExpectancy);
-    });
-    p.attr("r", function(d) {
-      return populationScale(d.population);
-    });
-    p.attr("fill", function(d) {
-      return color(d.region);
-    });
-  }
+     function position(p) {
+       p.attr("cx", function(d) {
+         return incomeScale(d.income);
+       });
+       p.attr("cy", function(d) {
+         return lifeScale(d.lifeExpectancy);
+       });
+       p.attr("r", function(d) {
+         return populationScale(d.population);
+       });
+       if (currentRegion == "") {
+         p.attr("fill", function(d) {
+           return color(d.region);
+         });
+       } else {
+         p.attr("fill", function(d) {
+           if (d.region == currentRegion) {
+             return color(d.region);
+           } else {
+             return "white";
+           }
+         });
+       }
+     }
 
-  function order(a, b) {
+     function order(a, b) {
 
-    // bring smaller circles to the front
-    return b.population - a.population;
-  }
+       // bring smaller circles to the front
+       return b.population - a.population;
+     }
 
-  var bisect = d3.bisector(function(d){ return d[0];});
+     var bisect = d3.bisector(function(d){ return d[0];});
 
-  var circle = svg.append("g")
-                  .attr("class", "circles")
-                  .selectAll(".circle")
-                  .data(interpolateData())
-                  .enter()
-                  .append("circle")
-                  .attr("class", "circle")
-//                  .attr("fill", "white")
-                  .attr("stroke", "black")
-                  .call(position)
-                  .sort(order)
-                  .on("click", function(d) {
-                    console.log(d);
-                  });
+     var div = d3.select("body").append("div")
+                 .attr("class", "tooltip")
+                 .style("opacity", 0);
 
-  // accept key events
-  d3.select("body").on("keydown", function() {
-    updateYear(d3.event.keyCode);
-  });
+     var circle = svg.append("g")
+                     .attr("class", "circles")
+                     .selectAll(".circle")
+                     .data(interpolateData())
+                     .enter()
+                     .append("circle")
+                     .attr("class", "circle")
+     //                  .attr("fill", "white")
+                     .attr("stroke", "black")
+                     .call(position)
+                     .sort(order)
+                     .on("click", function(d) {
+                       highlightSpecificRegion(d.region);
+                     })
+                     .on("mouseover", function(d) {
+                       div.transition()
+                          .duration(200)
+                          .style("opacity", .9);
+                       div.html(d.name + "<br />"  + d.region)
+                          .style("left", (d3.event.pageX) + "px")
+                          .style("top", (d3.event.pageY - 28) + "px");
+                     })
+                     .on("mouseout", function(d) {
+                       div.transition()
+                          .duration(500)
+                          .style("opacity", 0);
+                     });
 
-  function updateYear(key) {
-      console.log(key);
+     // accept key events
+     d3.select("body").on("keydown", function() {
+       updateYear(d3.event.keyCode);
+     });
 
-      // 39: right arrow, 37: left arrow
-      if (key == 37 && currentYear != 1800) {
-        yearLabel.text(Math.round(--currentYear));
-        circle.data(interpolateData(currentYear), function(d) {
-          return d.name;
-        }).call(position).sort(order);
-      } else if (key == 39 && currentYear != 2009) {
-        yearLabel.text(Math.round(++currentYear));
-        circle.data(interpolateData(currentYear), function(d) {
-          return d.name;
-        }).call(position).sort(order);
-      }
-  }
+     function updateYear(key) {
+       console.log(key);
 
-  function interpolateValues(values, year)
-  {
+       // 39: right arrow, 37: left arrow
+       if (key == 37 && currentYear != 1800) {
+         yearLabel.text(Math.round(--currentYear));
+         circle.data(interpolateData(currentYear), function(d) {
+           return d.name;
+         }).call(position).sort(order);
+       } else if (key == 39 && currentYear != 2009) {
+         yearLabel.text(Math.round(++currentYear));
+         circle.data(interpolateData(currentYear), function(d) {
+           return d.name;
+         }).call(position).sort(order);
+       }
+     }
 
-    var i = bisect.left(values, year, 0, values.length -1);
-    var a = values[i];
+     function highlightSpecificRegion(region) {
+       currentRegion = region;
+       circle.data(interpolateData(currentYear), function(d) {
+         return d.name;
+       }).call(position, region).sort(order);
+     }
 
-    if(i>0)
-    {
+     function interpolateValues(values, year)
+     {
 
-      var b = values[i-1];
-      var t = (year - a[0])/(b[0] - a[0]);
-      return Math.round(a[1] *(1-t) + b[1]*t);
-    }
+       var i = bisect.left(values, year, 0, values.length -1);
+       var a = values[i];
 
-    return a[1];
-  }
+       if(i>0)
+         {
 
-  function interpolateData()
-  {
+           var b = values[i-1];
+           var t = (year - a[0])/(b[0] - a[0]);
+           return Math.round(a[1] *(1-t) + b[1]*t);
+         }
 
-    return nations.map(
-      function(d) { return {
-          name: d.name,
-          region: d.region,
-          income: interpolateValues(d.income, currentYear),
-          population: interpolateValues(d.population, currentYear),
-          lifeExpectancy: interpolateValues(d.lifeExpectancy, currentYear)};
-      }
-    );
-  }
+       return a[1];
+     }
 
-});
+     function interpolateData()
+     {
 
-</script>
+       return nations.map(
+         function(d) { return {
+           name: d.name,
+           region: d.region,
+           income: interpolateValues(d.income, currentYear),
+           population: interpolateValues(d.population, currentYear),
+           lifeExpectancy: interpolateValues(d.lifeExpectancy, currentYear)};
+         }
+       );
+     }
+
+   });
+
+  </script>
 </body></html>
