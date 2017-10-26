@@ -1,0 +1,67 @@
+<html lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>D3 Test</title>
+<script type="text/javascript" src="./lib/d3.js"></script>
+<style type="text/css"></style>
+</head>
+<body>
+<script type="text/javascript">
+var dataset;
+d3.csv("data_basics_2.csv", function(error, data){
+
+  if(error) { console.log(error);
+  } else {
+    dataset = data;
+    console.log(dataset);
+    startVisualization();
+  }
+  function startVisualization() {
+    var value_array = getAllRowsInOneColumn(dataset, 'Value');
+    var svg = d3.select("body").append("svg")
+                .attr("width", 2000)
+                .attr("height", 1000);
+
+    var colorScale = d3.scaleLinear()
+                       .domain([0, 100])
+                       .range(["blue", "red"]);
+
+    var circles = svg.selectAll("circle").data(value_array)
+                     .enter().append("circle");
+    circles.attr("cx", function(d, i) { return i * 100 + 50; })
+           .attr("cy", 100)
+           .attr("r", function(d) { return (d / 2) ** 1.01; })
+           .attr("fill", function(d, i) { return colorScale(d); });
+    var text = svg.selectAll("text").data(value_array)
+                  .enter().append("text");
+    var circles_text = text.text(function(d) { return d; })
+                           .attr("x", function(d, i) {return i * 100 + 45; })
+                           .attr("y", 30);
+
+    var bars = svg.selectAll("rect").data(value_array)
+                  .enter().append("rect");
+    bars.attr("x", function(d, i) { return i * 100 + 35; })
+        .attr("y", function(d) { return 400 - d * 2; })
+        .attr("height", function(d) { return d * 2; })
+        .attr("width", 60)
+        .attr("fill", function(d, i) { return colorScale(d); });
+
+    var line = d3.line()
+                 .x(function(d, i) { return i * 100 + 45; })
+                 .y(function(d) { return 600 - d / 1; });
+    svg.append("path")
+       .attr("d", line(value_array))
+       .attr("stroke-width", 3)
+       .attr("stroke", "blue")
+       .attr("fill", "none");
+  }
+  function getAllRowsInOneColumn(data, column_label) {
+    var tmp = [];
+    for (var i = 0; i < data.length; i++) {
+      tmp.push(data[i][column_label]);
+    }
+    return tmp;
+  }
+});
+</script>
+</body>
+</html>
