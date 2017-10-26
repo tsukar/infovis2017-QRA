@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Test</title>
+        <script src="./lib/d3.js" charset="utf-8"></script>
+        <script src="./lib/topojson.js" charset="utf-8"></script>
+        <script src="./japan_population.json" charset="utf-8"></script>
+    </head>
+<body>
+<script type="text/javascript">
+
+var width = 800;
+var height = 800;
+
+var color = d3.scaleLinear()
+                       .domain([500000, 13000000])
+                       .range(["white", "red"]);
+
+var color_increase = d3.scaleLinear()
+                       .domain([0, 600000])
+                       .range(["white", "blue"]);
+var color_decrease = d3.scaleLinear()
+                       .domain([-150000, 0])
+                       .range(["red", "white"]);
+
+var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+var populationHash = {};
+var populationHash_diff = {};
+
+JapanPopulationData.Data.forEach(function (d) {
+  populationHash[d.Prefecture] = d.Population_2010;
+
+  populationHash_diff[d.Prefecture] = d.Population_2010 - d.Population_2000;
+});
+
+d3.json("./lib/japan.topojson", function(data) {
+  var japan = topojson.feature(data, data.objects.japan);
+
+  // Mercator projection
+  var projection = d3.geoMercator()
+                     .center([137, 34]) // lat and long
+                     .translate([width / 2, height / 2])
+                     .scale(1500);
+
+  var path = d3.geoPath().projection(projection);
+
+  svg.selectAll("path")
+     .data(japan.features)
+     .enter()
+     .append("path")
+     .attr("d", path)
+     .attr("fill", function(d) {
+       var diff = populationHash_diff[d.properties.nam_ja];
+       if (diff > 0) {
+         return color_increase(diff);
+       } else {
+         return color_decrease(diff);
+       }
+     })
+     .attr("stroke", "#333333")
+     .attr("stroke-width", 0.5)
+     .on("mouseover", function(d) {
+       showDetails(d.properties.nam_ja);
+     });
+
+  var pref_details = svg.append("text")
+                        .attr("x", 50)
+                        .attr("y", 50)
+                        .attr("font-size", 24)
+                        .attr("stroke", "none")
+                        .attr("fill", "black");
+
+  function showDetails(pref) {
+    pref_details.text(pref + ": " + populationHash[pref] + "人");
+  }
+
+  // accept key events
+  d3.select("body").on("keydown", function() {
+    switchColor(d3.event.keyCode);
+  });
+
+  function switchColor(key) {
+    console.log(key);
+
+    // 39: right arrow, 37: left arrow
+    if (key == 37) {
+      svg.selectAll("path")
+         .attr("fill", function(d) {
+           var diff = populationHash_diff[d.properties.nam_ja];
+           if (diff > 0) {
+             return color_increase(diff);
+           } else {
+             return color_decrease(diff);
+           }
+         });
+    } else if (key == 39) {
+      svg.selectAll("path")
+         .attr("fill", function(d) {
+           return color(populationHash[d.properties.nam_ja]);
+         });
+    }
+  }
+});
+
+</script>
+</body></html>
