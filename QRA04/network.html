@@ -1,0 +1,197 @@
+<html lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>D3 Test</title>
+<script type="text/javascript" src="./lib/d3.js"></script>
+<style type="text/css">
+</style>
+</head>
+<body>
+<table>
+<tr>
+<td width="100" id="company"></td>
+<td width="800" id="graph"></td>
+</tr>
+</table>
+<script type="text/javascript">
+
+// based on the following examples and data
+// http://bl.ocks.org/mbostock/2706022
+// http://bl.ocks.org/d3noob/5141278
+// http://blog.thomsonreuters.com/index.php/mobile-patent-suits-graphic-of-the-day/
+// http://bl.ocks.org/mbostock/2675ff61ea5e063ede2b5d63c08020c7
+
+var nodes = [
+  {name: "Amazon", id: 1},
+  {name: "Apple", id: 2},
+  {name: "Barnes & Noble", id: 3},
+  {name: "Ericsson", id: 4},
+  {name: "Foxconn", id: 5},
+  {name: "Google", id: 6},
+  {name: "HTC", id: 7},
+  {name: "Huawei", id: 8},
+  {name: "Inventec", id: 9},
+  {name: "Kodak", id: 10},
+  {name: "LG", id: 11},
+  {name: "Microsoft", id: 12},
+  {name: "Motorola", id: 13},
+  {name: "Nokia", id: 14},
+  {name: "Oracle", id: 15},
+  {name: "Qualcomm", id: 16},
+  {name: "RIM", id: 17},
+  {name: "Samsung", id: 18},
+  {name: "Sony", id: 19},
+  {name: "ZTE", id: 20}
+];
+var links = [
+  {source: "Microsoft", target: "Amazon", type: "licensing"},
+  {source: "Microsoft", target: "HTC", type: "licensing"},
+  {source: "Samsung", target: "Apple", type: "suit"},
+  {source: "Motorola", target: "Apple", type: "suit"},
+  {source: "Nokia", target: "Apple", type: "resolved"},
+  {source: "HTC", target: "Apple", type: "suit"},
+  {source: "Kodak", target: "Apple", type: "suit"},
+  {source: "Microsoft", target: "Barnes & Noble", type: "suit"},
+  {source: "Microsoft", target: "Foxconn", type: "suit"},
+  {source: "Oracle", target: "Google", type: "suit"},
+  {source: "Apple", target: "HTC", type: "suit"},
+  {source: "Microsoft", target: "Inventec", type: "suit"},
+  {source: "Samsung", target: "Kodak", type: "resolved"},
+  {source: "LG", target: "Kodak", type: "resolved"},
+  {source: "RIM", target: "Kodak", type: "suit"},
+  {source: "Sony", target: "LG", type: "suit"},
+  {source: "Kodak", target: "LG", type: "resolved"},
+  {source: "Apple", target: "Nokia", type: "resolved"},
+  {source: "Qualcomm", target: "Nokia", type: "resolved"},
+  {source: "Apple", target: "Motorola", type: "suit"},
+  {source: "Microsoft", target: "Motorola", type: "suit"},
+  {source: "Motorola", target: "Microsoft", type: "suit"},
+  {source: "Huawei", target: "ZTE", type: "suit"},
+  {source: "Ericsson", target: "ZTE", type: "suit"},
+  {source: "Kodak", target: "Samsung", type: "resolved"},
+  {source: "Apple", target: "Samsung", type: "suit"},
+  {source: "Kodak", target: "RIM", type: "suit"},
+  {source: "Nokia", target: "Qualcomm", type: "suit"}
+];
+
+var colors = {
+  "licensing": "blue",
+  "suit": "red",
+  "resolved": "green"
+}
+
+var width = 600;
+var height = 500;
+
+var svg_company = d3.select("#company").append("svg")
+                    .attr("width", 150)
+                    .attr("height", height);
+
+var text = svg_company.selectAll("text").data(nodes)
+                      .enter().append("text");
+
+var comp_text = text.text(function(d) { return d.name; })
+                    .attr("y", function(d, i) { return (i * 20) + 20; })
+                    .attr("x", 0)
+                    .attr("fill", "black")
+                    .attr("stroke", "none")
+                    .on("mouseover", textEntered)
+                    .on("mouseout", textLeft)
+                    .on("click", textClicked);
+
+var svg_graph = d3.select("#graph").append("svg")
+                  .attr("width", width)
+                  .attr("height", height);
+
+var simulation = d3.forceSimulation()
+                   .force("link", d3.forceLink().id(function(d) { return d.name; }))
+                   .force("charge", d3.forceManyBody())
+                   .force("center", d3.forceCenter(width / 2, height / 2));
+
+var link = svg_graph.selectAll("line")
+                    .data(links).enter()
+                    .append("line")
+                    .attr("stroke", function(d) {
+                      return colors[d.type];
+                    })
+                    .attr("stroke-width", 2)
+                    .attr("stroke-opacity", 0.3);
+
+var node = svg_graph.selectAll("circle")
+                    .data(nodes).enter().append("g")
+                    .attr("class", "node_group")
+                    .call(d3.drag()
+                            .on("start", dragstarted)
+                            .on("drag", dragged)
+                            .on("end", dragended));
+
+svg_graph.selectAll(".node_group").append("circle")
+         .attr("stroke", "black")
+         .attr("fill", "black")
+         .attr("class", function(d) { return "node_" + d.id; })
+         .attr("r", 5);
+
+svg_graph.selectAll(".node_group").append("text")
+         .attr("storke", "none")
+         .attr("fill", "black")
+         .text(function(d) { return d.name; });
+
+simulation.nodes(nodes).on("tick", ticked);
+simulation.force("link").links(links).distance(50);
+
+function ticked() {
+  link
+    .attr("x1", function(d) { return d.source.x; })
+    .attr("y1", function(d) { return d.source.y; })
+    .attr("x2", function(d) { return d.target.x; })
+    .attr("y2", function(d) { return d.target.y; });
+
+  node
+    .selectAll("circle")
+    .attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; });
+
+  node
+    .selectAll("text")
+    .attr("x", function(d) { return d.x + 10; })
+    .attr("y", function(d) { return d.y + 10; });
+}
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+function textEntered(d) {
+  svg_graph.select(".node_" + d.id).attr("fill", "red");
+}
+function textLeft(d) {
+  svg_graph.selectAll("circle").attr("fill", "black");
+}
+function textClicked(d) {
+  links.map(function(l) {
+    if (l.source.id == d.id) {
+      return l.target.id;
+    } else if (l.target.id == d.id) {
+      return l.source.id;
+    } else {
+      return 99; // あとで直す
+    }
+  }).forEach(function(i) {
+      svg_graph.select(".node_" + i).attr("fill", "lightblue");
+  });
+}
+
+</script>
+</body></html>
